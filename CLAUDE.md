@@ -1,7 +1,7 @@
 # Facilita V2
 
-Portal corporativo multi-empresa para links, documentos e notas, com permissões granulares,
-compartilhamento entre usuários, chat em tempo real e administração centralizada.
+Portal interno para links, documentos e notas, com permissões granulares, compartilhamento
+entre usuários, chat em tempo real e administração centralizada.
 
 ## Stack
 
