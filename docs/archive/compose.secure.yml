@@ -1,0 +1,32 @@
+services:
+  db:
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  backend:
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+
+  frontend:
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/.next/cache
+
+  nginx:
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /var/log/nginx

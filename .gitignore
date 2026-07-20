@@ -1,0 +1,42 @@
+# Environment files (contain secrets)
+.env
+.env.*
+
+# Keep example files
+!.env.example
+
+# Node modules
+node_modules/
+
+# Build outputs
+dist/
+.next/
+out/
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Uploads (keep directory structure)
+backend/uploads/*
+!backend/uploads/.gitkeep
+!backend/uploads/images/.gitkeep
+!backend/uploads/documents/.gitkeep
+
+# Backups
+backend/backups/*
+!backend/backups/.gitkeep
+!backend/backups/auto/.gitkeep
+!backend/backups/tmp/.gitkeep
+
+
+# Override local do compose (workaround de porta em dev)
+docker-compose.override.yml

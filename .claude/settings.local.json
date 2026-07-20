@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker-compose:*)",
+      "Bash(docker compose:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm run start:dev:*)",
+      "Bash(npm run prisma:generate:*)",
+      "Bash(npx prisma:*)",
+      "Bash(git checkout:*)",
+      "Bash(find:*)",
+      "Bash(lsof:*)",
+      "Bash(pkill:*)"
+    ]
+  }
+}

@@ -1,0 +1,464 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  SUPERADMIN
+  USER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum EntityStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum EntityType {
+  LINK
+  SCHEDULE
+  NOTE
+  USER
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+}
+
+enum ShareStatus {
+  PENDING
+  ACCEPTED
+}
+
+enum NotificationType {
+  CONTENT_DELETED
+  CONTENT_CREATED
+  CONTENT_UPDATED
+  CONTENT_RESTORED
+  CONTENT_ACTIVATED
+  CONTENT_DEACTIVATED
+  CONTENT_FAVORITED
+  CONTENT_SHARED
+  CONTENT_SHARE_REVOKED
+  FRIEND_REQUEST
+  FRIEND_ACCEPTED
+}
+
+enum ChatRoomType {
+  DIRECT
+  GROUP
+}
+
+model User {
+  id           String     @id @default(uuid()) @db.Uuid
+  name         String
+  email        String     @unique
+  cpf          String?    @unique
+  passwordHash String
+  role         UserRole   @default(USER)
+  status       UserStatus @default(ACTIVE)
+  avatarUrl    String?
+  theme        Json?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  refreshTokens    RefreshToken[]
+  categories       Category[]          @relation("CategoryOwner")
+  linksCreated     Link[]              @relation("LinkOwner")
+  schedulesCreated UploadedSchedule[]  @relation("ScheduleOwner")
+  notesCreated     Note[]              @relation("NoteOwner")
+  favorites        Favorite[]
+  linkVersions     LinkVersion[]       @relation("LinkVersionChanger")
+  activityLogs     ActivityLog[]       @relation("ActivityLogger")
+  auditLogs        AuditLog[]          @relation("AuditLogger")
+  uploadedImages   UploadedImage[]     @relation("ImageUploader")
+  notifications    Notification[]      @relation("UserNotifications")
+  sharesSent       Share[]             @relation("ShareOwner")
+  sharesReceived   Share[]             @relation("ShareRecipient")
+  chatRoomsCreated ChatRoom[]          @relation("ChatRoomsCreated")
+  chatMembers      ChatMember[]
+  sentMessages     ChatMessage[]       @relation("SentChatMessages")
+  friendshipsSent     Friendship[]     @relation("FriendshipRequester")
+  friendshipsReceived Friendship[]     @relation("FriendshipAddressee")
+}
+
+model RolePermission {
+  id                   String   @id @default(uuid()) @db.Uuid
+  role                 UserRole @unique
+  canViewHome          Boolean  @default(true)
+  canViewDashboard     Boolean  @default(false)
+  canViewFavorites     Boolean  @default(true)
+  canViewSharesPage    Boolean  @default(true)
+  canViewUsers         Boolean  @default(false)
+  canCreateUsers       Boolean  @default(false)
+  canEditUsers         Boolean  @default(false)
+  canDeleteUsers       Boolean  @default(false)
+  canViewCategories    Boolean  @default(true)
+  canManageCategories  Boolean  @default(false)
+  canViewLinks         Boolean  @default(true)
+  canManageLinks       Boolean  @default(false)
+  canViewSchedules     Boolean  @default(true)
+  canManageSchedules   Boolean  @default(false)
+  canViewNotes         Boolean  @default(true)
+  canManageNotes       Boolean  @default(false)
+  canViewImages        Boolean  @default(true)
+  canManageImages      Boolean  @default(false)
+  canBackupSystem      Boolean  @default(false)
+  canResetSystem       Boolean  @default(false)
+  canManageSystemConfig Boolean @default(false)
+  canManageShares      Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  tokenHash String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Category {
+  id        String       @id @default(uuid()) @db.Uuid
+  ownerId   String       @db.Uuid
+  name      String
+  color     String?
+  icon      String?
+  adminOnly Boolean      @default(false)
+  status    EntityStatus @default(ACTIVE)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  owner     User             @relation("CategoryOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  links     Link[]
+  schedules UploadedSchedule[]
+  notes     Note[]
+  sharesLocalCategory Share[] @relation("ShareLocalCategory")
+
+  @@index([ownerId])
+}
+
+model Link {
+  id            String            @id @default(uuid()) @db.Uuid
+  ownerId       String            @db.Uuid
+  categoryId    String?           @db.Uuid
+  title         String
+  url           String
+  description   String?
+  color         String?
+  imageUrl      String?
+  imagePosition String?
+  imageScale    Float?
+  order         Int               @default(0)
+  status        EntityStatus      @default(ACTIVE)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  deletedAt     DateTime?
+
+  owner      User         @relation("LinkOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  category   Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  favorites  Favorite[]
+  versions   LinkVersion[]
+  shares     Share[]
+
+  @@index([ownerId])
+  @@index([categoryId])
+  @@index([deletedAt])
+  @@index([status])
+  @@index([deletedAt, status])
+}
+
+model UploadedSchedule {
+  id            String            @id @default(uuid()) @db.Uuid
+  ownerId       String            @db.Uuid
+  categoryId    String?           @db.Uuid
+  title         String
+  fileUrl       String
+  fileName      String
+  fileSize      Int
+  color         String?
+  imageUrl      String?
+  imagePosition String?
+  imageScale    Float?
+  status        EntityStatus      @default(ACTIVE)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  deletedAt     DateTime?
+
+  owner      User         @relation("ScheduleOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  category   Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  favorites  Favorite[]
+  shares     Share[]
+
+  @@index([ownerId])
+  @@index([categoryId])
+  @@index([deletedAt])
+  @@index([status])
+  @@index([deletedAt, status])
+}
+
+model Note {
+  id            String            @id @default(uuid()) @db.Uuid
+  ownerId       String            @db.Uuid
+  categoryId    String?           @db.Uuid
+  title         String
+  content       String
+  color         String?
+  imageUrl      String?
+  imagePosition String?
+  imageScale    Float?
+  status        EntityStatus      @default(ACTIVE)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  deletedAt     DateTime?
+
+  owner      User         @relation("NoteOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  category   Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  favorites  Favorite[]
+  shares     Share[]
+
+  @@index([ownerId])
+  @@index([categoryId])
+  @@index([deletedAt])
+  @@index([status])
+  @@index([deletedAt, status])
+}
+
+model UploadedImage {
+  id           String       @id @default(uuid()) @db.Uuid
+  uploadedBy   String       @db.Uuid
+
+  filename     String
+  originalName String
+  url          String
+  mimeType     String
+  size         Int
+  width        Int?
+  height       Int?
+
+  alt          String?
+  tags         String[]     @default([])
+
+  status       EntityStatus @default(ACTIVE)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  deletedAt    DateTime?
+
+  user         User         @relation("ImageUploader", fields: [uploadedBy], references: [id], onDelete: Cascade)
+
+  @@index([uploadedBy])
+  @@index([createdAt])
+}
+
+model Share {
+  id             String   @id @default(uuid()) @db.Uuid
+  ownerId        String   @db.Uuid
+  recipientId    String   @db.Uuid
+  entityType     EntityType
+  status         ShareStatus @default(PENDING)
+  linkId         String?  @db.Uuid
+  scheduleId     String?  @db.Uuid
+  noteId         String?  @db.Uuid
+  localCategoryId String? @db.Uuid
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  approvedAt     DateTime?
+  removedAt      DateTime?
+  revokedAt      DateTime?
+
+  owner         User             @relation("ShareOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  recipient     User             @relation("ShareRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  link          Link?            @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  schedule      UploadedSchedule? @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  note          Note?            @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  localCategory Category?        @relation("ShareLocalCategory", fields: [localCategoryId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId])
+  @@index([recipientId])
+  @@index([entityType])
+  @@index([status])
+  @@index([linkId])
+  @@index([scheduleId])
+  @@index([noteId])
+  @@index([removedAt])
+  @@index([revokedAt])
+}
+
+model Friendship {
+  id          String           @id @default(uuid()) @db.Uuid
+  requesterId String           @db.Uuid
+  addresseeId String           @db.Uuid
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  acceptedAt  DateTime?
+
+  requester User @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee User @relation("FriendshipAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([requesterId])
+  @@index([addresseeId])
+  @@index([status])
+}
+
+model Notification {
+  id          String           @id @default(uuid()) @db.Uuid
+  userId      String           @db.Uuid
+  type        NotificationType
+  entityType  EntityType
+  entityId    String           @db.Uuid
+  title       String
+  message     String
+  actionUrl   String?
+  metadata    Json?
+  read        Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+
+  user        User             @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}
+
+model Favorite {
+  id         String      @id @default(uuid()) @db.Uuid
+  userId     String      @db.Uuid
+  entityType EntityType
+  linkId     String?     @db.Uuid
+  scheduleId String?     @db.Uuid
+  noteId     String?     @db.Uuid
+  createdAt  DateTime    @default(now())
+
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  link      Link?             @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  schedule  UploadedSchedule? @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  note      Note?             @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, entityType, linkId, scheduleId, noteId])
+  @@index([userId])
+}
+
+model ChatRoom {
+  id        String       @id @default(uuid()) @db.Uuid
+  type      ChatRoomType
+  name      String?
+  createdBy String?      @db.Uuid
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  creator  User?         @relation("ChatRoomsCreated", fields: [createdBy], references: [id], onDelete: SetNull)
+  members  ChatMember[]
+  messages ChatMessage[]
+
+  @@index([type])
+  @@index([createdBy])
+}
+
+model ChatMember {
+  id         String    @id @default(uuid()) @db.Uuid
+  roomId     String    @db.Uuid
+  userId     String    @db.Uuid
+  joinedAt   DateTime  @default(now())
+  lastReadAt DateTime?
+  removedAt  DateTime?
+
+  room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@index([userId])
+}
+
+model ChatMessage {
+  id        String    @id @default(uuid()) @db.Uuid
+  roomId    String    @db.Uuid
+  senderId  String    @db.Uuid
+  content   String
+  editedAt  DateTime?
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  room   ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sender User     @relation("SentChatMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, createdAt])
+  @@index([senderId])
+}
+
+model LinkVersion {
+  id           String   @id @default(uuid()) @db.Uuid
+  linkId       String   @db.Uuid
+  title        String
+  url          String
+  description  String?
+  changedBy    String   @db.Uuid
+  changeReason String?
+  createdAt    DateTime @default(now())
+
+  link          Link @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  changedByUser User @relation("LinkVersionChanger", fields: [changedBy], references: [id], onDelete: Cascade)
+
+  @@index([linkId])
+}
+
+model ActivityLog {
+  id         String     @id @default(uuid()) @db.Uuid
+  userId     String?    @db.Uuid
+  action     String
+  entityType EntityType
+  entityId   String     @db.Uuid
+  metadata   Json?
+  ip         String?
+  createdAt  DateTime   @default(now())
+
+  user User? @relation("ActivityLogger", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String?  @db.Uuid
+  action     String
+  targetType String?
+  targetId   String?  @db.Uuid
+  details    Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation("AuditLogger", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+}
+
+model SystemConfig {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique
+  value       String
+  description String?
+  type        String   @default("string")
+  isEditable  Boolean  @default(true)
+  category    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
